@@ -1,6 +1,6 @@
 import java.util.ArrayList;
 
-// RK2 or improved Euler's method
+// RK4 or improved Euler's method
 // takes these values:
 // 1. tFin - finishing time
 // 2. dt
@@ -48,19 +48,19 @@ public class RK4 {
             double k2Alpha = DerivativeFunction.getKAlpha(omega);
             double k2Omega = DerivativeFunction.getKOmega(alpha, l, g);
 
-            alpha = EulerFunction.getNewAlpha(alpha, k2Alpha, dt/2);
-            omega = EulerFunction.getNewOmega(omega, k2Omega, dt/2);
+            alpha = EulerFunction.getNewAlpha(currAlpha, k2Alpha, dt/2);
+            omega = EulerFunction.getNewOmega(currOmega, k2Omega, dt/2);
             double k3Alpha = DerivativeFunction.getKAlpha(omega);
             double k3Omega = DerivativeFunction.getKOmega(alpha, l, g);
 
-            alpha = EulerFunction.getNewAlpha(alpha, k3Alpha, dt);
-            omega = EulerFunction.getNewOmega(omega, k3Omega, dt);
+            alpha = EulerFunction.getNewAlpha(currAlpha, k3Alpha, dt);
+            omega = EulerFunction.getNewOmega(currOmega, k3Omega, dt);
             double k4Alpha = DerivativeFunction.getKAlpha(omega);
             double k4Omega = DerivativeFunction.getKOmega(alpha, l, g);
 
             // newAlpha = alpha(t0 + dt)
-            double newAlpha = currAlpha + (k1Alpha + 2* k2Alpha + 2 * k3Alpha + k4Alpha) / 6 * dt;
-            double newOmega = currOmega + (k1Omega + 2* k2Omega + 2 * k3Omega + k4Omega) / 6 * dt;
+            double newAlpha = currAlpha + (k1Alpha + 2 * k2Alpha + 2 * k3Alpha + k4Alpha) * dt / 6;
+            double newOmega = currOmega + (k1Omega + 2 * k2Omega + 2 * k3Omega + k4Omega) * dt / 6;
 
             // updating
             alphas.add(alpha);
@@ -69,6 +69,7 @@ public class RK4 {
             currOmega = newOmega;
         }
     }
+
 
     public ArrayList<Double> getAlphas() {
         return alphas;
