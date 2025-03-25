@@ -1,6 +1,7 @@
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Scanner;
 
 public class Main {
     private static ArrayList<Double> h = new ArrayList<>();
@@ -8,56 +9,95 @@ public class Main {
     private static ArrayList<Double> Ep = new ArrayList<>();
     private static ArrayList<Double> Et = new ArrayList<>();
 
+    private static double dt;
+    private static int tFin;
+    private static double startingAngle;
+    private static double startingW;
+    private static double length;
+    private static double mass;
+
+    // example: dt = 0.05, tFin = 20, angle = 30, starting W = 0, length = 2, mass = 5
+
     public static void main(String[] args) {
-//        RK2 rk2 = new RK2(0.05, 100_000, 0.523598776, 0, 1, -9.81);
-//        rk2.simulate();
-//        getHeight(rk2.getAlphas());
-//        getKinetics(rk2.getOmegas());
-//        getPotential(rk2.getAlphas());
-//        getTotal();
+        getInputFromConsole();
 
-        RK4 rk4 = new RK4(0.05, 20, 0.523598776, 0, 1, -9.81);
+        RK2 rk2 = new RK2(dt, tFin, startingAngle, startingW, length, -9.81);
+        rk2.simulate();
+        computeEnergies(rk2.getAlphas(), rk2.getOmegas());
+        ArrayList<Double> Ek_RK2 = new ArrayList<>(Ek);
+        ArrayList<Double> Ep_RK2 = new ArrayList<>(Ep);
+        ArrayList<Double> Et_RK2 = new ArrayList<>(Et);
+        clearData();
+
+        RK4 rk4 = new RK4(dt, tFin, startingAngle, startingW, length, -9.81);
         rk4.simulate();
-        getHeight(rk4.getAlphas());
-        getKinetics(rk4.getOmegas());
-        getPotential(rk4.getAlphas());
-        getTotal();
+        computeEnergies(rk4.getAlphas(), rk4.getOmegas());
+        ArrayList<Double> Ek_RK4 = new ArrayList<>(Ek);
+        ArrayList<Double> Ep_RK4 = new ArrayList<>(Ep);
+        ArrayList<Double> Et_RK4 = new ArrayList<>(Et);
 
-        writeResultsToTSV("results.tsv");
+        writeResultsToTSV("results.tsv", Ek_RK2, Ep_RK2, Et_RK2, Ek_RK4, Ep_RK4, Et_RK4);
     }
 
-    public static void getHeight(ArrayList<Double> alphas) {
+    public static void getInputFromConsole() {
+        Scanner scanner = new Scanner(System.in);
+
+        System.out.print("Enter time step (dt): ");
+        dt = scanner.nextDouble();
+
+        System.out.print("Enter total time (tFin): ");
+        tFin = scanner.nextInt();
+
+        System.out.print("Enter starting angle (radians): ");
+        startingAngle = scanner.nextDouble();
+
+        System.out.print("Enter starting angular velocity: ");
+        startingW = scanner.nextDouble();
+
+        System.out.print("Enter length of the string: ");
+        length = scanner.nextDouble();
+
+        System.out.print("Enter mass: ");
+        mass = scanner.nextDouble();
+
+        scanner.close();
+    }
+
+    public static void computeEnergies(ArrayList<Double> alphas, ArrayList<Double> omegas) {
         for (Double alpha : alphas) {
-            double height = 1 * Math.cos(alpha - 1.570796327) + 1;
-            h.add(height);
+            h.add(length * Math.cos(alpha - 1.570796327) + length);
+            Ep.add(mass * 10 * length * (1 - Math.cos(alpha)));
         }
-    }
-
-    public static void getKinetics(ArrayList<Double> omegas) {
-        for (Double oDouble : omegas) {
-            double kinetic = Math.pow(oDouble, 2) * 2 * 1 * 1 / 2;
-            Ek.add(kinetic);
+        for (Double omega : omegas) {
+            Ek.add(Math.pow(omega, 2) * 2 * mass * length / 2);
         }
-    }
-
-    public static void getPotential(ArrayList<Double> alphas) {
-        for (Double aDouble : alphas) {
-            double potential = 1 * 10 * 2 * (1 - Math.cos(aDouble));
-            Ep.add(potential);
-        }
-    }
-
-    public static void getTotal() {
         for (int i = 0; i < Ek.size(); i++) {
             Et.add(Ek.get(i) + Ep.get(i));
         }
     }
 
-    public static void writeResultsToTSV(String filename) {
+    public static void clearData() {
+        h.clear();
+        Ek.clear();
+        Ep.clear();
+        Et.clear();
+    }
+
+    public static void writeResultsToTSV(String filename, ArrayList<Double> Ek_RK2, ArrayList<Double> Ep_RK2, ArrayList<Double> Et_RK2,
+                                         ArrayList<Double> Ek_RK4, ArrayList<Double> Ep_RK4, ArrayList<Double> Et_RK4) {
         try (FileWriter writer = new FileWriter(filename)) {
-            writer.write("Ek\tEp\tEt\n"); // Header row
-            for (int i = 0; i < Ek.size(); i++) {
-                writer.write(String.format("%.2f\t%.2f\t%.2f\n", Ek.get(i), Ep.get(i), Et.get(i)));
+            writer.write("RK2_Ek\tRK2_Ep\tRK2_Et\tRK4_Ek\tRK4_Ep\tRK4_Et\n"); // Header row
+
+            int maxSize = Math.max(Ek_RK2.size(), Ek_RK4.size());
+            for (int i = 0; i < maxSize; i++) {
+                String rk2Ek = (i < Ek_RK2.size()) ? String.format("%.2f", Ek_RK2.get(i)) : "";
+                String rk2Ep = (i < Ep_RK2.size()) ? String.format("%.2f", Ep_RK2.get(i)) : "";
+                String rk2Et = (i < Et_RK2.size()) ? String.format("%.2f", Et_RK2.get(i)) : "";
+                String rk4Ek = (i < Ek_RK4.size()) ? String.format("%.2f", Ek_RK4.get(i)) : "";
+                String rk4Ep = (i < Ep_RK4.size()) ? String.format("%.2f", Ep_RK4.get(i)) : "";
+                String rk4Et = (i < Et_RK4.size()) ? String.format("%.2f", Et_RK4.get(i)) : "";
+
+                writer.write(String.join("\t", rk2Ek, rk2Ep, rk2Et, rk4Ek, rk4Ep, rk4Et) + "\n");
             }
             System.out.println("Results successfully written to " + filename);
         } catch (IOException e) {
